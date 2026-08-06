@@ -8,15 +8,14 @@ export default async function LeaderboardPage() {
 
   const { data: soldiers, error } = await supabase
     .from("profiles")
-    .select(
-      `
+    .select(`
       id,
       display_name,
       rank,
       current_streak,
-      best_streak
-      `
-    )
+      best_streak,
+      avatar_url
+    `)
     .order("current_streak", { ascending: false });
 
   if (error) {
@@ -50,6 +49,7 @@ export default async function LeaderboardPage() {
             rank={soldier.rank}
             streak={soldier.current_streak}
             status="Awaiting"
+            avatarUrl={soldier.avatar_url}
           />
         ))}
 

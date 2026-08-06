@@ -1,7 +1,10 @@
 import DashboardLayout from "@/components/dashboard/layout/DashboardLayout";
-import { Button } from "@/components/ui/button";
 import { getCurrentUser } from "@/lib/actions/getCurrentUser";
+import { getUserAchievements } from "@/lib/actions/getUserAchievements";
 import { redirect } from "next/navigation";
+import AvatarUpload from "@/components/profile/AvatarUpload";
+import EditProfileDialog from "@/components/profile/EditProfileDialog";
+
 
 import {
   CalendarDays,
@@ -11,13 +14,17 @@ import {
   UserRound,
 } from "lucide-react";
 
-const currentUser = await getCurrentUser();
-
-if (!currentUser) {
-  redirect("/");
-}
-
 export default async function ProfilePage() {
+  const currentUser = await getCurrentUser();
+
+  if (!currentUser) {
+    redirect("/");
+  }
+
+  const unlockedAchievements = await getUserAchievements(
+    currentUser.id
+  );
+
   return (
     <DashboardLayout>
       <div className="mx-auto max-w-5xl">
@@ -32,16 +39,17 @@ export default async function ProfilePage() {
             </p>
           </div>
 
-          <Button className="bg-green-700 hover:bg-green-800">
-            Edit Profile
-          </Button>
+          <EditProfileDialog
+            displayName={currentUser.display_name}
+            bio={currentUser.bio}
+          />
         </div>
 
         <section className="rounded-2xl border border-[#D4AF37]/20 bg-[#0B1220] p-8">
           <div className="flex flex-col items-center text-center">
-            <div className="flex h-28 w-28 items-center justify-center rounded-full border border-[#D4AF37]/30 bg-[#D4AF37]/10">
-              <UserRound className="h-14 w-14 text-[#D4AF37]" />
-            </div>
+            <AvatarUpload
+              avatarUrl={currentUser.avatar_url}
+            />
 
             <h2 className="mt-5 text-3xl font-bold text-white">
               {currentUser.display_name}
@@ -52,7 +60,7 @@ export default async function ProfilePage() {
             </p>
 
             <p className="mt-3 max-w-xl text-gray-400">
-              {currentUser.bio}
+              {currentUser.bio || "No bio yet."}
             </p>
           </div>
 
@@ -78,13 +86,12 @@ export default async function ProfilePage() {
             <ProfileStat
               icon={CalendarDays}
               label="Joined"
-              value={`Joined ${new Date(currentUser.created_at).toLocaleDateString(
-                "en-PH",
-                {
-                  month: "long",
-                  year: "numeric",
-                }
-              )}`}
+              value={new Date(
+                currentUser.created_at
+              ).toLocaleDateString("en-PH", {
+                month: "long",
+                year: "numeric",
+              })}
             />
           </div>
 
@@ -94,20 +101,32 @@ export default async function ProfilePage() {
             </h3>
 
             <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              <AchievementBadge
-                title="First Victory"
-                description="Won your first daily battle."
-              />
+              {unlockedAchievements.length === 0 ? (
+                <p className="text-gray-400">
+                  No achievements unlocked yet.
+                </p>
+              ) : (
+                unlockedAchievements.map((item) => {
+                  const achievement = Array.isArray(
+                    item.achievements
+                  )
+                    ? item.achievements[0]
+                    : item.achievements;
 
-              <AchievementBadge
-                title="7-Day Warrior"
-                description="Maintained a seven-day streak."
-              />
+                  if (!achievement) {
+                    return null;
+                  }
 
-              <AchievementBadge
-                title="Faithful Recruit"
-                description="Stayed active in the community."
-              />
+                  return (
+                    <AchievementBadge
+                      key={item.id}
+                      icon={achievement.icon}
+                      title={achievement.name}
+                      description={achievement.description}
+                    />
+                  );
+                })
+              )}
             </div>
           </div>
         </section>
@@ -140,16 +159,18 @@ function ProfileStat({
 }
 
 function AchievementBadge({
+  icon,
   title,
   description,
 }: {
+  icon: string;
   title: string;
   description: string;
 }) {
   return (
     <div className="rounded-xl border border-[#D4AF37]/20 bg-[#0B1220] p-4">
       <p className="font-bold text-[#D4AF37]">
-        🏅 {title}
+        {icon} {title}
       </p>
 
       <p className="mt-2 text-sm text-gray-400">

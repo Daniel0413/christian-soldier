@@ -1,9 +1,13 @@
+import Image from "next/image";
+import { UserRound } from "lucide-react";
+
 interface Soldier {
   id: string;
   display_name: string;
   rank: string;
   current_streak: number;
   best_streak: number;
+  avatar_url: string | null;
 }
 
 interface TopThreeProps {
@@ -24,6 +28,21 @@ export default function TopThree({
         >
           <div className="text-6xl">
             {medals[index]}
+          </div>
+
+          {/* Avatar */}
+          <div className="mx-auto mt-4 flex h-20 w-20 items-center justify-center overflow-hidden rounded-full border border-[#D4AF37]/30 bg-[#D4AF37]/10">
+            {soldier.avatar_url ? (
+              <Image
+                src={soldier.avatar_url}
+                alt={soldier.display_name}
+                width={80}
+                height={80}
+                className="h-20 w-20 object-cover"
+              />
+            ) : (
+              <UserRound className="h-9 w-9 text-[#D4AF37]" />
+            )}
           </div>
 
           <h2 className="mt-4 text-2xl font-bold text-white">

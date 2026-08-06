@@ -1,6 +1,10 @@
 "use server";
 
+import { revalidatePath, refresh } from "next/cache";
+
 import { createClient } from "@/lib/supabase/server";
+import { getRank } from "@/lib/actions/getRank";
+import { checkAchievements } from "@/lib/actions/checkAchievements";
 
 type BattleResult = "Victory" | "Defeat";
 
@@ -8,7 +12,9 @@ function formatDate(date: Date) {
   return date.toISOString().split("T")[0];
 }
 
-export async function submitBattleReport(result: BattleResult) {
+export async function submitBattleReport(
+  result: BattleResult
+) {
   const supabase = await createClient();
 
   const {
@@ -24,46 +30,64 @@ export async function submitBattleReport(result: BattleResult) {
   const today = formatDate(todayDate);
 
   const yesterdayDate = new Date(todayDate);
-  yesterdayDate.setUTCDate(yesterdayDate.getUTCDate() - 1);
+
+  yesterdayDate.setUTCDate(
+    yesterdayDate.getUTCDate() - 1
+  );
+
   const yesterday = formatDate(yesterdayDate);
 
   // Prevent duplicate reports.
-  const { data: existingReport, error: existingError } =
-    await supabase
-      .from("battle_reports")
-      .select("id")
-      .eq("user_id", user.id)
-      .eq("report_date", today)
-      .maybeSingle();
+  const {
+    data: existingReport,
+    error: existingError,
+  } = await supabase
+    .from("battle_reports")
+    .select("id")
+    .eq("user_id", user.id)
+    .eq("report_date", today)
+    .maybeSingle();
 
   if (existingError) {
     throw existingError;
   }
 
   if (existingReport) {
-    throw new Error("You already submitted today's report.");
+    throw new Error(
+      "You already submitted today's report."
+    );
   }
 
-  // Load the profile.
-  const { data: profile, error: profileError } =
-    await supabase
-      .from("profiles")
-      .select("current_streak, best_streak")
-      .eq("id", user.id)
-      .single();
+  // Load the current profile.
+  const {
+    data: profile,
+    error: profileError,
+  } = await supabase
+    .from("profiles")
+    .select(
+      `
+      current_streak,
+      best_streak,
+      rank
+      `
+    )
+    .eq("id", user.id)
+    .single();
 
   if (profileError || !profile) {
     throw new Error("Profile not found.");
   }
 
-  // Check whether yesterday was a Victory.
-  const { data: yesterdayReport, error: yesterdayError } =
-    await supabase
-      .from("battle_reports")
-      .select("result")
-      .eq("user_id", user.id)
-      .eq("report_date", yesterday)
-      .maybeSingle();
+  // Check yesterday's battle report.
+  const {
+    data: yesterdayReport,
+    error: yesterdayError,
+  } = await supabase
+    .from("battle_reports")
+    .select("result")
+    .eq("user_id", user.id)
+    .eq("report_date", yesterday)
+    .maybeSingle();
 
   if (yesterdayError) {
     throw yesterdayError;
@@ -74,16 +98,24 @@ export async function submitBattleReport(result: BattleResult) {
 
   if (result === "Defeat") {
     currentStreak = 0;
-  } else if (yesterdayReport?.result === "Victory") {
+  } else if (
+    yesterdayReport?.result === "Victory"
+  ) {
     currentStreak += 1;
   } else {
-    // First Victory or a Victory after missing/losing a day.
+    // First Victory or Victory after a missed or lost day.
     currentStreak = 1;
   }
 
-  bestStreak = Math.max(bestStreak, currentStreak);
+  bestStreak = Math.max(
+    bestStreak,
+    currentStreak
+  );
 
-  // Save the report.
+  // Calculate the new rank.
+  const rank = getRank(currentStreak);
+
+  // Save today's report.
   const { error: reportError } = await supabase
     .from("battle_reports")
     .insert({
@@ -96,17 +128,18 @@ export async function submitBattleReport(result: BattleResult) {
     throw reportError;
   }
 
-  // Update streak values.
+  // Update the profile streak and rank.
   const { error: updateError } = await supabase
     .from("profiles")
     .update({
       current_streak: currentStreak,
       best_streak: bestStreak,
+      rank,
     })
     .eq("id", user.id);
 
   if (updateError) {
-    // Remove the report so the two tables do not disagree.
+    // Remove today's report if the profile update fails.
     await supabase
       .from("battle_reports")
       .delete()
@@ -116,9 +149,51 @@ export async function submitBattleReport(result: BattleResult) {
     throw updateError;
   }
 
+  // Create a notification only when the rank changes.
+  if (rank !== profile.rank) {
+    const {
+      error: promotionNotificationError,
+    } = await supabase
+      .from("notifications")
+      .insert({
+        user_id: user.id,
+        type: "promotion",
+        title: "Rank Promotion",
+        message: `⭐ Congratulations! You have been promoted from ${profile.rank} to ${rank}.`,
+        link: "/rank-progress",
+      });
+
+    if (promotionNotificationError) {
+      console.error(
+        "Promotion notification error:",
+        promotionNotificationError
+      );
+    }
+  }
+
+  // Check and unlock newly earned achievements.
+  const unlockedAchievements =
+    await checkAchievements({
+      userId: user.id,
+      currentStreak,
+    });
+
+  revalidatePath("/dashboard");
+  revalidatePath("/profile");
+  revalidatePath("/leaderboard");
+  revalidatePath("/rank-progress");
+  revalidatePath("/achievements");
+  revalidatePath("/statistics");
+  revalidatePath("/notifications");
+  revalidatePath("/barracks");
+
+  refresh();
+
   return {
     result,
     currentStreak,
     bestStreak,
+    rank,
+    unlockedAchievements,
   };
 }

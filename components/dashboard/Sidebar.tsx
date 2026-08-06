@@ -1,14 +1,18 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+
 
 import {
   House,
   User,
   Trophy,
   Medal,
+  Award,
+  BarChart3,
   MessageSquare,
   ScrollText,
   LogOut,
@@ -25,6 +29,11 @@ const links = [
     title: "Profile",
     href: "/profile",
     icon: User,
+  },
+  {
+    title: "Achievements",
+    href: "/achievements",
+    icon: Award,
   },
   {
     title: "Leaderboard",
@@ -46,16 +55,22 @@ const links = [
     href: "/orders",
     icon: ScrollText,
   },
+  {
+    title: "Statistics",
+    href: "/statistics",
+    icon: BarChart3,
+  },
 ];
-
 interface SidebarProps {
   name: string;
   rank: string;
+  avatarUrl: string | null;
 }
 
 export default function Sidebar({
   name,
   rank,
+  avatarUrl,
 }: SidebarProps) {
   const pathname = usePathname();
 
@@ -73,7 +88,7 @@ export default function Sidebar({
   }
 
   return (
-    <aside className="flex min-h-screen w-72 flex-col border-r border-white/10 bg-[#0B1220]">
+    <aside className="flex h-screen w-72 flex-col border-r border-white/10 bg-[#0B1220]">
       {/* Logo */}
       <div className="border-b border-white/10 p-6">
         <h1 className="text-2xl font-bold text-[#D4AF37]">
@@ -95,11 +110,10 @@ export default function Sidebar({
             <Link
               key={link.href}
               href={link.href}
-              className={`mb-2 flex items-center gap-3 rounded-xl px-4 py-3 transition ${
-                active
-                  ? "bg-[#D4AF37]/10 text-[#D4AF37]"
-                  : "text-gray-300 hover:bg-white/5 hover:text-[#D4AF37]"
-              }`}
+              className={`mb-2 flex items-center gap-3 rounded-xl px-4 py-3 transition ${active
+                ? "bg-[#D4AF37]/10 text-[#D4AF37]"
+                : "text-gray-300 hover:bg-white/5 hover:text-[#D4AF37]"
+                }`}
             >
               <Icon className="h-5 w-5" />
               <span>{link.title}</span>
@@ -111,8 +125,18 @@ export default function Sidebar({
       {/* User Information */}
       <div className="border-t border-white/10 p-5">
         <div className="flex items-center gap-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#D4AF37]/10">
-            <UserRound className="h-6 w-6 text-[#D4AF37]" />
+          <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-full bg-[#D4AF37]/10">
+            {avatarUrl ? (
+              <Image
+                src={avatarUrl}
+                alt={name}
+                width={48}
+                height={48}
+                className="h-12 w-12 object-cover"
+              />
+            ) : (
+              <UserRound className="h-6 w-6 text-[#D4AF37]" />
+            )}
           </div>
 
           <div className="min-w-0 flex-1">

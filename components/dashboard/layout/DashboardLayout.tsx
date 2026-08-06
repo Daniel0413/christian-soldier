@@ -1,20 +1,29 @@
 import type { ReactNode } from "react";
-import Sidebar from "@/components/dashboard/Sidebar";
+import { redirect } from "next/navigation";
+
+import MobileDashboardLayout from "@/components/dashboard/layout/MobileDashboardLayout";
+import { getCurrentUser } from "@/lib/actions/getCurrentUser";
 
 interface DashboardLayoutProps {
   children: ReactNode;
 }
 
-export default function DashboardLayout({
+export default async function DashboardLayout({
   children,
 }: DashboardLayoutProps) {
-  return (
-    <div className="flex min-h-screen bg-[#111827] text-white">
-      <Sidebar />
+  const currentUser = await getCurrentUser();
 
-      <main className="flex-1 p-8">
-        {children}
-      </main>
-    </div>
+  if (!currentUser) {
+    redirect("/");
+  }
+
+  return (
+    <MobileDashboardLayout
+      name={currentUser.display_name}
+      rank={currentUser.rank}
+      avatarUrl={currentUser.avatar_url}
+    >
+      {children}
+    </MobileDashboardLayout>
   );
 }
