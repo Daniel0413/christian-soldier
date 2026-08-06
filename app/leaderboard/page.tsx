@@ -14,7 +14,8 @@ export default async function LeaderboardPage() {
       rank,
       current_streak,
       best_streak,
-      avatar_url
+      avatar_url,
+      result
     `)
     .order("current_streak", { ascending: false });
 
@@ -48,7 +49,7 @@ export default async function LeaderboardPage() {
             name={soldier.display_name}
             rank={soldier.rank}
             streak={soldier.current_streak}
-            status="Awaiting"
+            status={soldier.result}
             avatarUrl={soldier.avatar_url}
           />
         ))}
