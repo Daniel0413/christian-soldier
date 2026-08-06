@@ -6,56 +6,73 @@ import BattleCard from "@/components/dashboard/cards/BattleCard";
 import RankProgressCard from "@/components/dashboard/cards/RankProgressCard";
 import OrdersCard from "@/components/dashboard/cards/OrdersCard";
 
-import { currentUser } from "@/lib/mock-data";
+import { getTodayBattleReport } from "@/lib/actions/getTodayBattleReport";
+import { getCurrentUser } from "@/lib/actions/getCurrentUser";
+import { redirect } from "next/navigation";
 
 import {
-    Flame,
-    Medal,
-    Trophy,
-    CalendarDays,
+  Flame,
+  Medal,
+  Trophy,
+  CalendarDays,
 } from "lucide-react";
 
-export default function DashboardPage() {
-    return (
-        <DashboardLayout>
-            <Header />
+export default async function DashboardPage() {
+  const currentUser = await getCurrentUser();
 
-            {/* Stats Cards */}
-            <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
-                <StatsCard
-                    title="Current Streak"
-                    value={`${currentUser.currentStreak} Days`}
-                    icon={Flame}
-                />
+  if (!currentUser) {
+    redirect("/");
+  }
 
-                <StatsCard
-                    title="Rank"
-                    value={currentUser.rank}
-                    icon={Medal}
-                />
+  const todayReport = await getTodayBattleReport();
 
-                <StatsCard
-                    title="Best Streak"
-                    value={`${currentUser.bestStreak} Days`}
-                    icon={Trophy}
-                />
+  const todayStatus = todayReport
+    ? todayReport.result
+    : "Awaiting Report";
 
-                <StatsCard
-                    title="Today's Status"
-                    value={currentUser.status}
-                    icon={CalendarDays}
-                />
-            </div>
+  return (
+    <DashboardLayout>
+      <Header
+        name={currentUser.display_name}
+        rank={currentUser.rank}
+      />
 
-            {/* Verse and Battle Cards */}
-            <div className="mt-8 grid gap-6 lg:grid-cols-2">
-                <VerseCard />
-                <BattleCard />
-                <div className="mt-8 grid gap-6 lg:grid-cols-2">
-                    <RankProgressCard />
-                    <OrdersCard />
-                </div>
-            </div>
-        </DashboardLayout>
-    );
+      <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
+        <StatsCard
+          title="Current Streak"
+          value={`${currentUser.current_streak} Days`}
+          icon={Flame}
+        />
+
+        <StatsCard
+          title="Rank"
+          value={currentUser.rank}
+          icon={Medal}
+        />
+
+        <StatsCard
+          title="Best Streak"
+          value={`${currentUser.best_streak} Days`}
+          icon={Trophy}
+        />
+
+        <StatsCard
+          title="Today's Status"
+          value={todayStatus}
+          icon={CalendarDays}
+        />
+      </div>
+
+      <div className="mt-8 grid gap-6 lg:grid-cols-2">
+        <VerseCard />
+
+        <BattleCard report={todayReport} />
+      </div>
+
+      <div className="mt-8 grid gap-6 lg:grid-cols-2">
+        <RankProgressCard />
+        <OrdersCard />
+      </div>
+    </DashboardLayout>
+  );
 }

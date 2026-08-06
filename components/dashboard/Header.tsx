@@ -1,9 +1,16 @@
 "use client";
 
 import { UserRound } from "lucide-react";
-import { currentUser } from "@/lib/mock-data";
 
-export default function Header() {
+interface HeaderProps {
+  name: string;
+  rank: string;
+}
+
+export default function Header({
+  name,
+  rank,
+}: HeaderProps) {
   const today = new Intl.DateTimeFormat("en-PH", {
     weekday: "long",
     month: "long",
@@ -28,7 +35,7 @@ export default function Header() {
         </p>
 
         <h1 className="mt-2 text-3xl font-bold text-white">
-          {greeting}, {currentUser.name}
+          {greeting}, {name}
         </h1>
 
         <p className="mt-2 text-gray-400">
@@ -43,11 +50,11 @@ export default function Header() {
 
         <div>
           <p className="font-semibold text-white">
-            {currentUser.name}
+            {name}
           </p>
 
           <p className="text-sm text-[#D4AF37]">
-            {currentUser.rank}
+            {rank}
           </p>
 
           <p className="mt-1 text-xs text-gray-500">

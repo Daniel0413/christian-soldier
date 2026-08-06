@@ -1,6 +1,7 @@
 import DashboardLayout from "@/components/dashboard/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
-import { currentUser } from "@/lib/mock-data";
+import { getCurrentUser } from "@/lib/actions/getCurrentUser";
+import { redirect } from "next/navigation";
 
 import {
   CalendarDays,
@@ -10,7 +11,13 @@ import {
   UserRound,
 } from "lucide-react";
 
-export default function ProfilePage() {
+const currentUser = await getCurrentUser();
+
+if (!currentUser) {
+  redirect("/");
+}
+
+export default async function ProfilePage() {
   return (
     <DashboardLayout>
       <div className="mx-auto max-w-5xl">
@@ -37,7 +44,7 @@ export default function ProfilePage() {
             </div>
 
             <h2 className="mt-5 text-3xl font-bold text-white">
-              {currentUser.name}
+              {currentUser.display_name}
             </h2>
 
             <p className="mt-2 text-lg font-semibold text-[#D4AF37]">
@@ -53,13 +60,13 @@ export default function ProfilePage() {
             <ProfileStat
               icon={Flame}
               label="Current Streak"
-              value={`${currentUser.currentStreak} Days`}
+              value={`${currentUser.current_streak} Days`}
             />
 
             <ProfileStat
               icon={Trophy}
               label="Best Streak"
-              value={`${currentUser.bestStreak} Days`}
+              value={`${currentUser.best_streak} Days`}
             />
 
             <ProfileStat
@@ -71,7 +78,13 @@ export default function ProfilePage() {
             <ProfileStat
               icon={CalendarDays}
               label="Joined"
-              value={currentUser.joined}
+              value={`Joined ${new Date(currentUser.created_at).toLocaleDateString(
+                "en-PH",
+                {
+                  month: "long",
+                  year: "numeric",
+                }
+              )}`}
             />
           </div>
 
