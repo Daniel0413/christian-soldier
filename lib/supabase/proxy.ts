@@ -32,7 +32,44 @@ export async function updateSession(request: NextRequest) {
     }
   );
 
-  await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const protectedRoutes = [
+    "/dashboard",
+    "/achievements",
+    "/barracks",
+    "/leaderboard",
+    "/notifications",
+    "/orders",
+    "/profile",
+    "/rank-progress",
+    "/statistics",
+    "/admin",
+  ];
+
+  const pathname = request.nextUrl.pathname;
+
+  const isProtectedRoute = protectedRoutes.some((route) =>
+    pathname.startsWith(route)
+  );
+
+  // User is not logged in
+  if (!user && isProtectedRoute) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/";
+
+    return NextResponse.redirect(url);
+  }
+
+  // User is already logged in
+  if (user && pathname === "/") {
+    const url = request.nextUrl.clone();
+    url.pathname = "/dashboard";
+
+    return NextResponse.redirect(url);
+  }
 
   return response;
 }

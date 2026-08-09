@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 
 import {
@@ -39,6 +39,19 @@ export default function AuthModals() {
   const [message, setMessage] = useState("");
 
   const supabase = createClient();
+  useEffect(() => {
+  async function checkSession() {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (user) {
+      window.location.href = "/dashboard";
+    }
+  }
+
+  void checkSession();
+}, []);
 
   function openModal(selectedView: AuthView) {
     setView(selectedView);
